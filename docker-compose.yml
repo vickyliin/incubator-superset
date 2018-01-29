@@ -1,0 +1,35 @@
+version: '3'
+services:
+  redis:
+    image: redis
+    restart: always
+    volumes:
+      - redis:/data
+  mysql:
+    image: mysql
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: superset
+      MYSQL_DATABASE: superset
+      MYSQL_USER: superset
+      MYSQL_PASSWORD: superset
+    volumes:
+      - mysql:/var/lib/mysql
+  superset:
+    image: superset
+    restart: always
+    depends_on:
+      - mysql
+      - redis
+    environment:
+      MAPBOX_API_KEY: pk.eyJ1Ijoidmlja3lsaWluIiwiYSI6ImNqMDBnZXhoNzAzenozM2xzZG5yd3VqM2cifQ.ZvSkP8T9G2QQ9MdBV1HieA
+    ports:
+      - "8081:8081"
+    volumes:
+      - ./superset_config.py:/etc/superset/superset_config.py
+      - ./superset/assets/dist:/usr/local/lib/python3.5/dist-packages/superset/static/assets/dist
+volumes:
+  mysql:
+    external: false
+  redis:
+    external: false

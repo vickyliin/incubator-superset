@@ -107,7 +107,7 @@ const config = {
   },
   plugins: [
     new ManifestPlugin(),
-    new CleanWebpackPlugin(['dist']),
+    new CleanWebpackPlugin(['dist/*.*']),
     new webpack.DefinePlugin({
       'process.env': {
         NODE_ENV: JSON.stringify(process.env.NODE_ENV),
