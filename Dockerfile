@@ -48,7 +48,7 @@ RUN useradd -U -m superset && \
         superset==${SUPERSET_VERSION}
 
 # Configure Filesystem
-COPY superset /usr/local/bin
+COPY bin /usr/local/bin
 VOLUME /home/superset \
        /etc/superset \
        /var/lib/superset
