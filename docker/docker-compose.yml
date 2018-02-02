@@ -25,9 +25,11 @@ services:
       MAPBOX_API_KEY: pk.eyJ1Ijoidmlja3lsaWluIiwiYSI6ImNqMDBnZXhoNzAzenozM2xzZG5yd3VqM2cifQ.ZvSkP8T9G2QQ9MdBV1HieA
     ports:
       - "8081:8081"
+      - "8888"
     volumes:
-      - ./superset_config.py:/etc/superset/superset_config.py
-      - ./superset/assets/dist:/usr/local/lib/python3.5/dist-packages/superset/static/assets/dist
+      - ../superset_config.py:/etc/superset/superset_config.py
+      - ../superset/assets/dist:/usr/local/lib/python3.5/dist-packages/superset/static/assets/dist
+      - ./home:/home/superset
 volumes:
   mysql:
     external: false

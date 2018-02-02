@@ -46,17 +46,17 @@ RUN useradd -U -m superset && \
         sqlalchemy-clickhouse==0.1.1.post3 \
         Werkzeug==0.12.1 \
         superset==${SUPERSET_VERSION}
+RUN pip3 install jupyter pandas
 
 # Configure Filesystem
-COPY bin /usr/local/bin
+COPY superset-init /usr/local/bin
 VOLUME /home/superset \
        /etc/superset \
        /var/lib/superset
 WORKDIR /home/superset
 
 # Deploy application
-EXPOSE 8081
+EXPOSE 8081 8888
 HEALTHCHECK CMD ["curl", "-f", "http://localhost:8081/health"]
 ENTRYPOINT ["superset"]
 CMD ["runserver", "-d", "-p", "8081"]
-USER superset
