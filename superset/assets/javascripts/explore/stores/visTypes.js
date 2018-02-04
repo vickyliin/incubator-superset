@@ -1251,6 +1251,7 @@ export const visTypes = {
           ['mapbox_style'],
           ['global_opacity'],
           ['mapbox_color'],
+          ['series'],
         ],
       },
       {

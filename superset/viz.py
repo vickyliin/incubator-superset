@@ -1702,6 +1702,9 @@ class MapboxViz(BaseViz):
 
             if fd.get('point_radius') != 'Auto':
                 d['columns'].append(fd.get('point_radius'))
+            
+            if fd.get('series'):
+                d['columns'].append(fd.get('series'))
 
             d['columns'] = list(set(d['columns']))
         else:
@@ -1739,6 +1742,11 @@ class MapboxViz(BaseViz):
             [None] * len(df.index)
             if fd.get('point_radius') == 'Auto'
             else df[fd.get('point_radius')])
+        series_col = (
+            [None] * len(df.index)
+            if not fd.get('series')
+            else df[fd.get('series')]
+        )
 
         # using geoJSON formatting
         geo_json = {
@@ -1749,17 +1757,19 @@ class MapboxViz(BaseViz):
                     'properties': {
                         'metric': metric,
                         'radius': point_radius,
+                        'group': series,
                     },
                     'geometry': {
                         'type': 'Point',
                         'coordinates': [lon, lat],
                     },
                 }
-                for lon, lat, metric, point_radius
+                for lon, lat, metric, point_radius, series
                 in zip(
                     df[fd.get('all_columns_x')],
                     df[fd.get('all_columns_y')],
-                    metric_col, point_radius_col)
+                    metric_col, point_radius_col, 
+                    series_col)
             ],
         }
 
