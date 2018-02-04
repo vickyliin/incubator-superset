@@ -1250,7 +1250,7 @@ export const visTypes = {
           ['render_while_dragging'],
           ['mapbox_style'],
           ['global_opacity'],
-          ['mapbox_color'],
+          ['color_scheme'],
           ['series'],
         ],
       },
@@ -1284,6 +1284,9 @@ export const visTypes = {
       groupby: {
         description: t('One or many controls to group by. If grouping, latitude ' +
           'and longitude columns must be present.'),
+      },
+      color_scheme: {
+        renderTrigger: false,
       },
     },
   },

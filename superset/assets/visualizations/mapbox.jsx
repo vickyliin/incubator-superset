@@ -8,6 +8,7 @@ import MapGL from 'react-map-gl';
 import Immutable from 'immutable';
 import supercluster from 'supercluster';
 import ViewportMercator from 'viewport-mercator-project';
+import { getColorFromScheme, hexToRGB } from '../javascripts/modules/colors';
 
 import {
   kmToPixels,
@@ -298,7 +299,7 @@ class MapboxViz extends React.Component {
             locations={Immutable.fromJS(cluster)}
             dotRadius={this.props.pointRadius}
             pointRadiusUnit={this.props.pointRadiusUnit}
-            rgb={this.props.rgb}
+            rgb={hexToRGB(getColorFromScheme(key, this.props.colorScheme))}
             globalOpacity={this.props.globalOpacity}
             compositeOperation={'screen'}
             renderWhileDragging={this.props.renderWhileDragging}
@@ -323,7 +324,7 @@ MapboxViz.propTypes = {
   pointRadius: PropTypes.number,
   pointRadiusUnit: PropTypes.string,
   renderWhileDragging: PropTypes.bool,
-  rgb: PropTypes.array,
+  colorScheme: PropTypes.string,
   sliceHeight: PropTypes.number,
   sliceWidth: PropTypes.number,
   viewportLatitude: PropTypes.number,
@@ -335,13 +336,6 @@ function mapbox(slice, json, setControlValue) {
   const div = d3.select(slice.selector);
   const DEFAULT_POINT_RADIUS = 60;
   const DEFAULT_MAX_ZOOM = 16;
-
-  // Validate mapbox color
-  const rgb = /^rgb\((\d{1,3}),\s*(\d{1,3}),\s*(\d{1,3})\)$/.exec(json.data.color);
-  if (rgb === null) {
-    slice.error('Color field must be of form \'rgb(%d, %d, %d)\'');
-    return;
-  }
 
   const aggName = json.data.aggregatorName;
   let reducer;
@@ -394,7 +388,7 @@ function mapbox(slice, json, setControlValue) {
   ReactDOM.render(
     <MapboxViz
       {...json.data}
-      rgb={rgb}
+      colorScheme={json.form_data.color_scheme}
       sliceHeight={slice.height()}
       sliceWidth={slice.width()}
       clusterer={clusterer}
