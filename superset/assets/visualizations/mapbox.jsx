@@ -22,6 +22,43 @@ import {
 import './mapbox.css';
 
 const NOOP = () => {};
+class MapLegend extends React.PureComponent {
+  render() {
+    return (
+      <li className="map-legend">
+        <span
+          className="legend-color"
+          style={{ background: this.props.color }}
+        />
+        {this.props.name}
+      </li>
+    );
+  }
+}
+
+MapLegend.propTypes = {
+  color: PropTypes.string,
+  name: PropTypes.string,
+};
+
+class ControlPanel extends React.PureComponent {
+  render() {
+    return (
+      <ul className="control-panel">
+        {this.props.legends.map(([name, color]) => (
+          <MapLegend
+            key={name}
+            name={name}
+            color={color}
+          />
+        ))}
+      </ul>
+    );
+  }
+}
+ControlPanel.propTypes = {
+  legends: PropTypes.array,
+};
 
 class ScatterPlotGlowOverlay extends React.Component {
   componentDidMount() {
@@ -276,7 +313,11 @@ class MapboxViz extends React.Component {
     const bottomRight = mercator.unproject([this.props.sliceWidth, this.props.sliceHeight]);
     const bbox = [topLeft[0], bottomRight[1], bottomRight[0], topLeft[1]];
     const clusters = Object.entries(this.props.clusterer).map(([key, clusterer]) => (
-      [key, clusterer.getClusters(bbox, Math.round(this.state.viewport.zoom))]
+      [
+        key,
+        getColorFromScheme(key, this.props.colorScheme),
+        clusterer.getClusters(bbox, Math.round(this.state.viewport.zoom)),
+      ]
     ));
     const isDragging = this.state.viewport.isDragging === undefined ? false :
                        this.state.viewport.isDragging;
@@ -289,7 +330,10 @@ class MapboxViz extends React.Component {
         mapboxApiAccessToken={this.props.mapboxApiKey}
         onViewportChange={this.onViewportChange}
       >
-        {clusters.map(([key, cluster]) => (
+        {clusters.length > 1 && <ControlPanel
+          legends={clusters.map(([key, color, cluster]) => ([key, color]))}
+        />}
+        {clusters.map(([key, color, cluster]) => (
           <ScatterPlotGlowOverlay
             {...this.state.viewport}
             isDragging={isDragging}
@@ -299,7 +343,7 @@ class MapboxViz extends React.Component {
             locations={Immutable.fromJS(cluster)}
             dotRadius={this.props.pointRadius}
             pointRadiusUnit={this.props.pointRadiusUnit}
-            rgb={hexToRGB(getColorFromScheme(key, this.props.colorScheme))}
+            rgb={hexToRGB(color)}
             globalOpacity={this.props.globalOpacity}
             compositeOperation={'screen'}
             renderWhileDragging={this.props.renderWhileDragging}
