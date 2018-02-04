@@ -274,7 +274,9 @@ class MapboxViz extends React.Component {
     const topLeft = mercator.unproject([0, 0]);
     const bottomRight = mercator.unproject([this.props.sliceWidth, this.props.sliceHeight]);
     const bbox = [topLeft[0], bottomRight[1], bottomRight[0], topLeft[1]];
-    const clusters = this.props.clusterer.getClusters(bbox, Math.round(this.state.viewport.zoom));
+    const clusters = Object.entries(this.props.clusterer).map(([key, clusterer]) => (
+      [key, clusterer.getClusters(bbox, Math.round(this.state.viewport.zoom))]
+    ));
     const isDragging = this.state.viewport.isDragging === undefined ? false :
                        this.state.viewport.isDragging;
     return (
@@ -286,24 +288,27 @@ class MapboxViz extends React.Component {
         mapboxApiAccessToken={this.props.mapboxApiKey}
         onViewportChange={this.onViewportChange}
       >
-        <ScatterPlotGlowOverlay
-          {...this.state.viewport}
-          isDragging={isDragging}
-          width={this.props.sliceWidth}
-          height={this.props.sliceHeight}
-          locations={Immutable.fromJS(clusters)}
-          dotRadius={this.props.pointRadius}
-          pointRadiusUnit={this.props.pointRadiusUnit}
-          rgb={this.props.rgb}
-          globalOpacity={this.props.globalOpacity}
-          compositeOperation={'screen'}
-          renderWhileDragging={this.props.renderWhileDragging}
-          aggregatorName={this.props.aggregatorName}
-          lngLatAccessor={function (location) {
-            const coordinates = location.get('geometry').get('coordinates');
-            return [coordinates.get(0), coordinates.get(1)];
-          }}
-        />
+        {clusters.map(([key, cluster]) => (
+          <ScatterPlotGlowOverlay
+            {...this.state.viewport}
+            isDragging={isDragging}
+            key={key}
+            width={this.props.sliceWidth}
+            height={this.props.sliceHeight}
+            locations={Immutable.fromJS(cluster)}
+            dotRadius={this.props.pointRadius}
+            pointRadiusUnit={this.props.pointRadiusUnit}
+            rgb={this.props.rgb}
+            globalOpacity={this.props.globalOpacity}
+            compositeOperation={'screen'}
+            renderWhileDragging={this.props.renderWhileDragging}
+            aggregatorName={this.props.aggregatorName}
+            lngLatAccessor={function (location) {
+              const coordinates = location.get('geometry').get('coordinates');
+              return [coordinates.get(0), coordinates.get(1)];
+            }}
+          />
+        ))}
       </MapGL>
     );
   }
@@ -366,13 +371,24 @@ function mapbox(slice, json, setControlValue) {
     };
   }
 
-  const clusterer = supercluster({
-    radius: json.data.clusteringRadius,
-    maxZoom: DEFAULT_MAX_ZOOM,
-    metricKey: 'metric',
-    metricReducer: reducer,
+  const featureGroup = json.data.geoJSON.features.reduce((fg, feature) => {
+    const key = feature.properties.group;
+    fg[key] = fg[key] || [];
+    fg[key].push(feature);
+    return fg;
+  }, {});
+
+  const clusterer = {};
+  Object.entries(featureGroup).forEach(([key, features]) => {
+    clusterer[key] = supercluster({
+      radius: json.data.clusteringRadius,
+      maxZoom: DEFAULT_MAX_ZOOM,
+      metricKey: 'metric',
+      metricReducer: reducer,
+    });
+    clusterer[key].load(features);
+    return clusterer;
   });
-  clusterer.load(json.data.geoJSON.features);
 
   div.selectAll('*').remove();
   ReactDOM.render(
