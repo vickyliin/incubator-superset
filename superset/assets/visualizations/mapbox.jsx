@@ -310,6 +310,7 @@ class MapboxViz extends React.Component {
     super(props);
     const longitude = this.props.viewportLongitude || DEFAULT_LONGITUDE;
     const latitude = this.props.viewportLatitude || DEFAULT_LATITUDE;
+    this.clusterers = {};
 
     this.state = {
       viewport: {
@@ -319,6 +320,7 @@ class MapboxViz extends React.Component {
         startDragLngLat: [longitude, latitude],
       },
       legends: true,
+      time: Math.max(...Object.keys(this.props.data)) || null,
     };
     this.onViewportChange = this.onViewportChange.bind(this);
   }
@@ -341,13 +343,24 @@ class MapboxViz extends React.Component {
     const topLeft = mercator.unproject([0, 0]);
     const bottomRight = mercator.unproject([this.props.sliceWidth, this.props.sliceHeight]);
     const bbox = [topLeft[0], bottomRight[1], bottomRight[0], topLeft[1]];
-    const clusters = Object.entries(this.props.clusterer).map(([key, clusterer]) => (
-      [
-        key,
-        getColorFromScheme(key, this.props.colorScheme),
-        clusterer.getClusters(bbox, Math.round(this.state.viewport.zoom)),
-      ]
-    ));
+
+    if (!this.clusterers[this.state.time]) {
+      const clusterers = this.clusterers[this.state.time] = [];
+      for (const [key, features] of Object.entries(this.props.data[this.state.time])) {
+        const clusterer = supercluster(this.props.clusterSettings);
+        clusterer.load(features);
+        clusterers.push([
+          key,
+          getColorFromScheme(key, this.props.colorScheme),
+          clusterer,
+        ]);
+      }
+    }
+
+    const clusters = this.clusterers[this.state.time].map(([key, color, clusterer]) => ([
+      key, color, clusterer.getClusters(bbox, Math.round(this.state.viewport.zoom)),
+    ]));
+
     const isDragging = this.state.viewport.isDragging === undefined ? false :
                        this.state.viewport.isDragging;
     return (
@@ -390,7 +403,8 @@ class MapboxViz extends React.Component {
 }
 MapboxViz.propTypes = {
   aggregatorName: PropTypes.string,
-  clusterer: PropTypes.object,
+  data: PropTypes.object,
+  clusterSettings: PropTypes.object,
   setControlValue: PropTypes.func,
   globalOpacity: PropTypes.number,
   mapStyle: PropTypes.string,
@@ -439,24 +453,12 @@ function mapbox(slice, json, setControlValue) {
     };
   }
 
-  const featureGroup = json.data.geoJSON.features.reduce((fg, feature) => {
-    const key = feature.properties.group;
-    fg[key] = fg[key] || [];
-    fg[key].push(feature);
-    return fg;
-  }, {});
-
-  const clusterer = {};
-  Object.entries(featureGroup).forEach(([key, features]) => {
-    clusterer[key] = supercluster({
-      radius: json.data.clusteringRadius,
-      maxZoom: DEFAULT_MAX_ZOOM,
-      metricKey: 'metric',
-      metricReducer: reducer,
-    });
-    clusterer[key].load(features);
-    return clusterer;
-  });
+  const clusterSettings = {
+    radius: json.data.clusteringRadius,
+    maxZoom: DEFAULT_MAX_ZOOM,
+    metricKey: 'metric',
+    metricReducer: reducer,
+  };
 
   div.selectAll('*').remove();
   ReactDOM.render(
@@ -465,7 +467,8 @@ function mapbox(slice, json, setControlValue) {
       colorScheme={json.form_data.color_scheme}
       sliceHeight={slice.height()}
       sliceWidth={slice.width()}
-      clusterer={clusterer}
+      data={json.data.geoJSONSeries}
+      clusterSettings={clusterSettings}
       pointRadius={DEFAULT_POINT_RADIUS}
       aggregatorName={aggName}
       setControlValue={setControlValue || NOOP}

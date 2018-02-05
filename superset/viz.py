@@ -1706,6 +1706,9 @@ class MapboxViz(BaseViz):
             if fd.get('series'):
                 d['columns'].append(fd.get('series'))
 
+            if fd.get('time_grain_sqla'):
+                d['is_timeseries'] = True
+
             d['columns'] = list(set(d['columns']))
         else:
             # Ensuring columns chosen are all in group by
@@ -1728,53 +1731,62 @@ class MapboxViz(BaseViz):
 
     def get_data(self, df):
         fd = self.form_data
+        geo_json_series = {}
+        group_cols = []
+        if fd.get('series'):
+            group_cols.append(fd.get('series'))
+            group_col_type = 'series'
+        if fd.get('time_grain_sqla'):
+            group_cols.append(DTTM_ALIAS)
+            group_col_type = 'datetime'
+
         label_col = fd.get('mapbox_label')
         custom_metric = label_col and len(label_col) >= 1
-        metric_col = [None] * len(df.index)
-        if custom_metric:
-            if label_col[0] == fd.get('all_columns_x'):
-                metric_col = df[fd.get('all_columns_x')]
-            elif label_col[0] == fd.get('all_columns_y'):
-                metric_col = df[fd.get('all_columns_y')]
-            else:
-                metric_col = df[label_col[0]]
-        point_radius_col = (
-            [None] * len(df.index)
-            if fd.get('point_radius') == 'Auto'
-            else df[fd.get('point_radius')])
-        series_col = (
-            [None] * len(df.index)
-            if not fd.get('series')
-            else df[fd.get('series')]
-        )
+        iterate_groups = df.groupby(group_cols) if group_cols else [(None, df)]
 
-        # using geoJSON formatting
-        geo_json = {
-            'type': 'FeatureCollection',
-            'features': [
+        for key, df in iterate_groups:
+            if len(group_cols) == 0:
+                series, datetime = None, None
+            elif len(group_cols) == 2:
+                series, datetime = key
+            elif group_col_type == 'series':
+                series, datetime = key, None
+            elif group_col_type == 'datetime':
+                series, datetime = None, key
+            datetime = datetime and str(datetime.value)[:-6]
+
+            metric_col = [None] * len(df.index)
+            if custom_metric:
+                metric_col = df[label_col[0]]
+
+            point_radius_col = (
+                [None] * len(df.index)
+                if fd.get('point_radius') == 'Auto'
+                else df[fd.get('point_radius')])
+
+            # using geoJSON formatting
+            geo_json_series.setdefault(datetime, {})
+            geo_json_series[datetime][series] = [
                 {
                     'type': 'Feature',
                     'properties': {
                         'metric': metric,
                         'radius': point_radius,
-                        'group': series,
                     },
                     'geometry': {
                         'type': 'Point',
                         'coordinates': [lon, lat],
                     },
                 }
-                for lon, lat, metric, point_radius, series
+                for lon, lat, metric, point_radius
                 in zip(
                     df[fd.get('all_columns_x')],
                     df[fd.get('all_columns_y')],
-                    metric_col, point_radius_col, 
-                    series_col)
-            ],
-        }
+                    metric_col, point_radius_col)
+            ]
 
         return {
-            'geoJSON': geo_json,
+            'geoJSONSeries': geo_json_series,
             'customMetric': custom_metric,
             'mapboxApiKey': config.get('MAPBOX_API_KEY'),
             'mapStyle': fd.get('mapbox_style'),
@@ -1787,7 +1799,6 @@ class MapboxViz(BaseViz):
             'viewportZoom': fd.get('viewport_zoom'),
             'renderWhileDragging': fd.get('render_while_dragging'),
             'tooltip': fd.get('rich_tooltip'),
-            'color': fd.get('mapbox_color'),
         }
 
 
