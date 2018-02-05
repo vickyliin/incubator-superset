@@ -44,18 +44,25 @@ div.control-panel {
     bottom: 0;
     right: 0;
     margin: 1em 1em;
+    background-color: rgba(255, 255, 255, 0.8);
+    border-radius: 1ex;
+    padding: 1em;
 }
 
-.display-legends {
+div.control-panel>div {
     display: flex;
     align-items: center;
-    cursor: pointer;
+    justify-content: center;
+    height: 2em;
 }
 
-div.control-panel .display-legends input[type="checkbox"] {
-    margin: 0;
+div.control-panel>div input,
+div.control-panel>div label
+{
+    margin: 0.5ex;
 }
 
-div.control-panel .display-legends label {
-    margin: 0;
+
+.mapboxgl-missing-css {
+    display: none;
 }

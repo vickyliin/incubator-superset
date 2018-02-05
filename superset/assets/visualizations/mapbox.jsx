@@ -63,9 +63,7 @@ LegendPanel.propTypes = {
 class ControlPanel extends React.PureComponent {
   constructor(props) {
     super(props);
-    this.state = {
-      id: 'display-legends-' + this.constructor.id++,
-    };
+    this.id = this.constructor.id++;
   }
   render() {
     return (
@@ -73,11 +71,18 @@ class ControlPanel extends React.PureComponent {
         <div className="display-legends">
           <input
             type="checkbox"
-            id={this.state.id}
+            id={'display-legends-' + this.id}
             onChange={this.props.toggleLegends}
             defaultChecked
           />
-          <label htmlFor={this.state.id}>Display Legends</label>
+          <label htmlFor={'display-legends-' + this.id}>Display Legends</label>
+        </div>
+        <div className="time-slider">
+          <label htmlFor={'time-slider-' + this.id}>Year</label>
+          <input
+            type="range"
+            id={'time-slider-' + this.id}
+          />
         </div>
       </div>
     );
@@ -364,40 +369,44 @@ class MapboxViz extends React.Component {
     const isDragging = this.state.viewport.isDragging === undefined ? false :
                        this.state.viewport.isDragging;
     return (
-      <MapGL
-        {...this.state.viewport}
-        mapStyle={this.props.mapStyle}
-        width={this.props.sliceWidth}
-        height={this.props.sliceHeight}
-        mapboxApiAccessToken={this.props.mapboxApiKey}
-        onViewportChange={this.onViewportChange}
+      <div
+        style={{ width: this.props.sliceWidth, height: this.props.sliceHeight, position: 'absolute' }}
       >
-        {clusters.length > 1 && this.state.legends && <LegendPanel
-          legends={clusters.map(([key, color, cluster]) => ([key, color]))}
-        />}
-        {clusters.map(([key, color, cluster]) => (
-          <ScatterPlotGlowOverlay
-            {...this.state.viewport}
-            isDragging={isDragging}
-            key={key}
-            width={this.props.sliceWidth}
-            height={this.props.sliceHeight}
-            locations={Immutable.fromJS(cluster)}
-            dotRadius={this.props.pointRadius}
-            pointRadiusUnit={this.props.pointRadiusUnit}
-            rgb={[this.props.globalOpacity, ...hexToRGB(color)]}
-            globalOpacity={this.props.globalOpacity}
-            compositeOperation={'screen'}
-            renderWhileDragging={this.props.renderWhileDragging}
-            aggregatorName={this.props.aggregatorName}
-            lngLatAccessor={function (location) {
-              const coordinates = location.get('geometry').get('coordinates');
-              return [coordinates.get(0), coordinates.get(1)];
-            }}
-          />
-        ))}
+        <MapGL
+          {...this.state.viewport}
+          mapStyle={this.props.mapStyle}
+          width={this.props.sliceWidth}
+          height={this.props.sliceHeight}
+          mapboxApiAccessToken={this.props.mapboxApiKey}
+          onViewportChange={this.onViewportChange}
+        >
+          {clusters.length > 1 && this.state.legends && <LegendPanel
+            legends={clusters.map(([key, color, cluster]) => ([key, color]))}
+          />}
+          {clusters.map(([key, color, cluster]) => (
+            <ScatterPlotGlowOverlay
+              {...this.state.viewport}
+              isDragging={isDragging}
+              key={key}
+              width={this.props.sliceWidth}
+              height={this.props.sliceHeight}
+              locations={Immutable.fromJS(cluster)}
+              dotRadius={this.props.pointRadius}
+              pointRadiusUnit={this.props.pointRadiusUnit}
+              rgb={[this.props.globalOpacity, ...hexToRGB(color)]}
+              globalOpacity={this.props.globalOpacity}
+              compositeOperation={'screen'}
+              renderWhileDragging={this.props.renderWhileDragging}
+              aggregatorName={this.props.aggregatorName}
+              lngLatAccessor={function (location) {
+                const coordinates = location.get('geometry').get('coordinates');
+                return [coordinates.get(0), coordinates.get(1)];
+              }}
+            />
+          ))}
+        </MapGL>
         <ControlPanel toggleLegends={evt => this.setState({ legends: evt.target.checked })} />
-      </MapGL>
+      </div>
     );
   }
 }
