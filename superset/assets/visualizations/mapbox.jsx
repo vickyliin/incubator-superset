@@ -9,6 +9,7 @@ import Immutable from 'immutable';
 import supercluster from 'supercluster';
 import ViewportMercator from 'viewport-mercator-project';
 import { getColorFromScheme, hexToRGB } from '../javascripts/modules/colors';
+import { d3TimeFormatPreset } from '../javascripts/modules/utils';
 
 import {
   kmToPixels,
@@ -22,6 +23,7 @@ import {
 import './mapbox.css';
 
 const NOOP = () => {};
+const d3TimeFormat = d3TimeFormatPreset();
 class MapLegend extends React.PureComponent {
   render() {
     return (
@@ -68,6 +70,16 @@ class ControlPanel extends React.PureComponent {
   render() {
     return (
       <div className="control-panel">
+        <div className="display-time">
+          {d3TimeFormat(this.props.displayTime)}
+        </div>
+        <div className="time-slider">
+          <label htmlFor={'time-slider-' + this.id}>{ this.props.timeGrain }</label>
+          <input
+            type="range"
+            id={'time-slider-' + this.id}
+          />
+        </div>
         <div className="display-legends">
           <input
             type="checkbox"
@@ -77,13 +89,6 @@ class ControlPanel extends React.PureComponent {
           />
           <label htmlFor={'display-legends-' + this.id}>Display Legends</label>
         </div>
-        <div className="time-slider">
-          <label htmlFor={'time-slider-' + this.id}>Year</label>
-          <input
-            type="range"
-            id={'time-slider-' + this.id}
-          />
-        </div>
       </div>
     );
   }
@@ -91,6 +96,8 @@ class ControlPanel extends React.PureComponent {
 ControlPanel.id = 0;
 ControlPanel.propTypes = {
   toggleLegends: PropTypes.func,
+  timeGrain: PropTypes.string,
+  displayTime: PropTypes.string,
 };
 
 class ScatterPlotGlowOverlay extends React.Component {
@@ -405,7 +412,11 @@ class MapboxViz extends React.Component {
             />
           ))}
         </MapGL>
-        <ControlPanel toggleLegends={evt => this.setState({ legends: evt.target.checked })} />
+        <ControlPanel
+          toggleLegends={evt => this.setState({ legends: evt.target.checked })}
+          timeGrain={this.props.timeGrain}
+          displayTime={this.state.time}
+        />
       </div>
     );
   }
@@ -414,6 +425,7 @@ MapboxViz.propTypes = {
   aggregatorName: PropTypes.string,
   data: PropTypes.object,
   clusterSettings: PropTypes.object,
+  timeGrain: PropTypes.string,
   setControlValue: PropTypes.func,
   globalOpacity: PropTypes.number,
   mapStyle: PropTypes.string,
@@ -477,6 +489,7 @@ function mapbox(slice, json, setControlValue) {
       sliceHeight={slice.height()}
       sliceWidth={slice.width()}
       data={json.data.geoJSONSeries}
+      timeGrain={json.form_data.time_grain_sqla}
       clusterSettings={clusterSettings}
       pointRadius={DEFAULT_POINT_RADIUS}
       aggregatorName={aggName}

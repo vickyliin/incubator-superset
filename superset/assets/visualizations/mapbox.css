@@ -49,6 +49,15 @@ div.control-panel {
     padding: 1em;
 }
 
+div.display-legends {
+    font-variant-caps: all-small-caps;
+}
+
+div.time-slider, div.display-time {
+    text-transform: capitalize;
+    font-variant-caps: small-caps;
+}
+
 div.control-panel>div {
     display: flex;
     align-items: center;
