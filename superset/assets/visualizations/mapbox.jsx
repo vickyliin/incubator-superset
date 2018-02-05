@@ -372,7 +372,7 @@ class MapboxViz extends React.Component {
             locations={Immutable.fromJS(cluster)}
             dotRadius={this.props.pointRadius}
             pointRadiusUnit={this.props.pointRadiusUnit}
-            rgb={hexToRGB(color)}
+            rgb={[this.props.globalOpacity, ...hexToRGB(color)]}
             globalOpacity={this.props.globalOpacity}
             compositeOperation={'screen'}
             renderWhileDragging={this.props.renderWhileDragging}
