@@ -41,10 +41,10 @@ MapLegend.propTypes = {
   name: PropTypes.string,
 };
 
-class ControlPanel extends React.PureComponent {
+class LegendPanel extends React.PureComponent {
   render() {
     return (
-      <ul className="control-panel">
+      <ul className="legend-panel">
         {this.props.legends.map(([name, color]) => (
           <MapLegend
             key={name}
@@ -56,8 +56,36 @@ class ControlPanel extends React.PureComponent {
     );
   }
 }
-ControlPanel.propTypes = {
+LegendPanel.propTypes = {
   legends: PropTypes.array,
+};
+
+class ControlPanel extends React.PureComponent {
+  constructor(props) {
+    super(props);
+    this.state = {
+      id: 'display-legends-' + this.constructor.id++,
+    };
+  }
+  render() {
+    return (
+      <div className="control-panel">
+        <div className="display-legends">
+          <input
+            type="checkbox"
+            id={this.state.id}
+            onChange={this.props.toggleLegends}
+            defaultChecked
+          />
+          <label htmlFor={this.state.id}>Display Legends</label>
+        </div>
+      </div>
+    );
+  }
+}
+ControlPanel.id = 0;
+ControlPanel.propTypes = {
+  toggleLegends: PropTypes.func,
 };
 
 class ScatterPlotGlowOverlay extends React.Component {
@@ -290,6 +318,7 @@ class MapboxViz extends React.Component {
         zoom: this.props.viewportZoom || DEFAULT_ZOOM,
         startDragLngLat: [longitude, latitude],
       },
+      legends: true,
     };
     this.onViewportChange = this.onViewportChange.bind(this);
   }
@@ -330,7 +359,7 @@ class MapboxViz extends React.Component {
         mapboxApiAccessToken={this.props.mapboxApiKey}
         onViewportChange={this.onViewportChange}
       >
-        {clusters.length > 1 && <ControlPanel
+        {clusters.length > 1 && this.state.legends && <LegendPanel
           legends={clusters.map(([key, color, cluster]) => ([key, color]))}
         />}
         {clusters.map(([key, color, cluster]) => (
@@ -354,6 +383,7 @@ class MapboxViz extends React.Component {
             }}
           />
         ))}
+        <ControlPanel toggleLegends={evt => this.setState({ legends: evt.target.checked })} />
       </MapGL>
     );
   }
