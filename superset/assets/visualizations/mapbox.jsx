@@ -71,13 +71,18 @@ class ControlPanel extends React.PureComponent {
     return (
       <div className="control-panel">
         <div className="display-time">
-          {d3TimeFormat(this.props.displayTime)}
+          { d3TimeFormat(parseInt(this.props.times[this.props.timeId], 10)) }
         </div>
         <div className="time-slider">
           <label htmlFor={'time-slider-' + this.id}>{ this.props.timeGrain }</label>
           <input
             type="range"
             id={'time-slider-' + this.id}
+            onChange={this.props.setTime}
+            value={this.props.timeId}
+            min="0"
+            max={this.props.times.length - 1}
+            step="1"
           />
         </div>
         <div className="display-legends">
@@ -96,8 +101,10 @@ class ControlPanel extends React.PureComponent {
 ControlPanel.id = 0;
 ControlPanel.propTypes = {
   toggleLegends: PropTypes.func,
+  setTime: PropTypes.func,
   timeGrain: PropTypes.string,
-  displayTime: PropTypes.string,
+  times: PropTypes.array,
+  timeId: PropTypes.number,
 };
 
 class ScatterPlotGlowOverlay extends React.Component {
@@ -322,6 +329,7 @@ class MapboxViz extends React.Component {
     super(props);
     const longitude = this.props.viewportLongitude || DEFAULT_LONGITUDE;
     const latitude = this.props.viewportLatitude || DEFAULT_LATITUDE;
+    this.times = Object.keys(this.props.data).sort();
     this.clusterers = {};
 
     this.state = {
@@ -332,7 +340,7 @@ class MapboxViz extends React.Component {
         startDragLngLat: [longitude, latitude],
       },
       legends: true,
-      time: Math.max(...Object.keys(this.props.data)) || null,
+      timeId: this.times.length - 1,
     };
     this.onViewportChange = this.onViewportChange.bind(this);
   }
@@ -355,10 +363,11 @@ class MapboxViz extends React.Component {
     const topLeft = mercator.unproject([0, 0]);
     const bottomRight = mercator.unproject([this.props.sliceWidth, this.props.sliceHeight]);
     const bbox = [topLeft[0], bottomRight[1], bottomRight[0], topLeft[1]];
+    const time = this.times[this.state.timeId];
 
-    if (!this.clusterers[this.state.time]) {
-      const clusterers = this.clusterers[this.state.time] = [];
-      for (const [key, features] of Object.entries(this.props.data[this.state.time])) {
+    if (!this.clusterers[time]) {
+      const clusterers = this.clusterers[time] = [];
+      for (const [key, features] of Object.entries(this.props.data[time])) {
         const clusterer = supercluster(this.props.clusterSettings);
         clusterer.load(features);
         clusterers.push([
@@ -369,7 +378,7 @@ class MapboxViz extends React.Component {
       }
     }
 
-    const clusters = this.clusterers[this.state.time].map(([key, color, clusterer]) => ([
+    const clusters = this.clusterers[time].map(([key, color, clusterer]) => ([
       key, color, clusterer.getClusters(bbox, Math.round(this.state.viewport.zoom)),
     ]));
 
@@ -414,8 +423,10 @@ class MapboxViz extends React.Component {
         </MapGL>
         <ControlPanel
           toggleLegends={evt => this.setState({ legends: evt.target.checked })}
+          setTime={evt => this.setState({ timeId: parseInt(evt.target.value) })}
           timeGrain={this.props.timeGrain}
-          displayTime={this.state.time}
+          times={this.times}
+          timeId={this.state.timeId}
         />
       </div>
     );
