@@ -70,30 +70,36 @@ class ControlPanel extends React.PureComponent {
   render() {
     return (
       <div className="control-panel">
-        <div className="display-time">
-          { d3TimeFormat(parseInt(this.props.times[this.props.timeId], 10)) }
-        </div>
-        <div className="time-slider">
-          <label htmlFor={'time-slider-' + this.id}>{ this.props.timeGrain }</label>
-          <input
-            type="range"
-            id={'time-slider-' + this.id}
-            onChange={this.props.setTime}
-            value={this.props.timeId}
-            min="0"
-            max={this.props.times.length - 1}
-            step="1"
-          />
-        </div>
-        <div className="display-legends">
-          <input
-            type="checkbox"
-            id={'display-legends-' + this.id}
-            onChange={this.props.toggleLegends}
-            defaultChecked
-          />
-          <label htmlFor={'display-legends-' + this.id}>Display Legends</label>
-        </div>
+        {this.props.times.length > 1 && (
+          <div className="display-time">
+            { d3TimeFormat(parseInt(this.props.times[this.props.timeId], 10)) }
+          </div>
+        )}
+        {this.props.times.length > 1 && (
+          <div className="time-slider">
+            <label htmlFor={'time-slider-' + this.id}>{ this.props.timeGrain }</label>
+            <input
+              type="range"
+              id={'time-slider-' + this.id}
+              onChange={this.props.setTime}
+              value={this.props.timeId}
+              min="0"
+              max={this.props.times.length - 1}
+              step="1"
+            />
+          </div>
+        )}
+        {this.props.displayLegends && (
+          <div className="display-legends">
+            <input
+              type="checkbox"
+              id={'display-legends-' + this.id}
+              onChange={this.props.toggleLegends}
+              defaultChecked
+            />
+            <label htmlFor={'display-legends-' + this.id}>Display Legends</label>
+          </div>
+        )}
       </div>
     );
   }
@@ -101,6 +107,7 @@ class ControlPanel extends React.PureComponent {
 ControlPanel.id = 0;
 ControlPanel.propTypes = {
   toggleLegends: PropTypes.func,
+  displayLegends: PropTypes.bool,
   setTime: PropTypes.func,
   timeGrain: PropTypes.string,
   times: PropTypes.array,
@@ -381,6 +388,7 @@ class MapboxViz extends React.Component {
     const clusters = this.clusterers[time].map(([key, color, clusterer]) => ([
       key, color, clusterer.getClusters(bbox, Math.round(this.state.viewport.zoom)),
     ]));
+    const hasLegends = clusters[0][0] !== 'null';
 
     const isDragging = this.state.viewport.isDragging === undefined ? false :
                        this.state.viewport.isDragging;
@@ -396,7 +404,7 @@ class MapboxViz extends React.Component {
           mapboxApiAccessToken={this.props.mapboxApiKey}
           onViewportChange={this.onViewportChange}
         >
-          {clusters.length > 1 && this.state.legends && <LegendPanel
+          {hasLegends && this.state.legends && <LegendPanel
             legends={clusters.map(([key, color, cluster]) => ([key, color]))}
           />}
           {clusters.map(([key, color, cluster]) => (
@@ -423,7 +431,8 @@ class MapboxViz extends React.Component {
         </MapGL>
         <ControlPanel
           toggleLegends={evt => this.setState({ legends: evt.target.checked })}
-          setTime={evt => this.setState({ timeId: parseInt(evt.target.value) })}
+          displayLegends={hasLegends}
+          setTime={evt => this.setState({ timeId: parseInt(evt.target.value, 10) })}
           timeGrain={this.props.timeGrain}
           times={this.times}
           timeId={this.state.timeId}
